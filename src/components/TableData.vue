@@ -1,30 +1,75 @@
 <template>
   <div>
-    <!-- <input
-      type="text"
-      v-model="searchData"
-    > -->
+    <h2 class="table-title">{{title}}</h2>
+    <div class="filters">
+      <input
+        class="input"
+        type="text"
+        v-model="searchData"
+        placeholder="Search albums"
+      >
+      <span>
+        Albums count: {{filteredAlbum.length}}
+      </span>
+      <input
+        class="input"
+        type="text"
+        v-model="searchPhoto"
+        placeholder="Search photos"
+      >
+      <span>
+        Photos count: {{filteredPhoto.length}}
+      </span>
+      <button
+        @click="sortAlbum"
+        class="filter-btn"
+      >
+        Sort By Albums
+      </button>
+      <button
+        @click="sortPhotos"
+        class="filter-btn"
+      >
+        Sort By Photos
+      </button>
+    </div>
     <div
       class="table-wrapper"
       ref="table"
+      @scroll="scroll"
     >
       <div ref="album">
+        <span
+          v-if="!filteredAlbum.length || !filteredPhoto.length"
+          class="search-emtpy"
+        >Empty Search Data</span>
         <div
           class="album"
-          v-for="(album, index) in albumsChunk"
+          v-for="album in searchData ? filteredAlbum : albumsChunk"
           :key="album.id"
         >
-          <span class="album-title">
-            {{index + 1}}
-            this Album -> {{album.title}}
+          <span
+            class="album-title"
+            v-if="filteredAlbum.length && !searchPhoto"
+          >
+            {{album.id}} {{album.title}}
           </span>
           <div
             class="photo"
-            v-for="(photo, index) in album.photos"
+            v-for="photo in searchPhoto ? filteredPhoto : album.photos"
             :key="photo.id"
           >
-            {{index + 1}}
-            title PHOTO -> {{photo}}
+            <span class="photo-id">
+              {{photo.id}}
+            </span>
+            <span class="photo-text">
+              {{photo.title}}
+            </span>
+            <img
+              :src="photo.thumbnailUrl"
+              alt="photo"
+              class="thumbnail"
+            >
           </div>
         </div>
       </div>
@@ -40,40 +85,65 @@ export default {
     albums: {
       type: Array,
       required: true
+    },
+    title: {
+      tyoe: String,
+      default: "TABLE"
     }
   },
 
   data() {
     return {
       albumsChunk: [],
+      photos: [],
       searchData: "",
+      searchPhoto: "",
       countAlbum: 1
     };
   },
 
   computed: {
-    // filteredData() {
-    //   return this.albums.filter(album => {
-    //     return (
-    //       // album.title.toLowerCase().indexOf(this.searchData.toLowerCase()) !==
-    //       // -1
-    //       album.title.toLowerCase().includes(this.searchData.toLowerCase())
-    //     );
-    //   });
-    // }
+    filteredAlbum() {
+      return this.albums.filter(album => {
+        return album.title
+          .toLowerCase()
+          .includes(this.searchData.toLowerCase());
+      });
+    },
+
+    filteredPhoto() {
+      this.albumsChunk = this.albums.slice(0, 1);
+      return this.photos.filter(photo => {
+        return photo.title
+          .toLowerCase()
+          .includes(this.searchPhoto.toLowerCase());
+      });
+    }
   },
 
   methods: {
+    //     I know that DOM don't like to render a lot of elements, cuz it's bad for fps. But for this situation it's possible
+    //     We can cut old elements from us albumsChunk and add new (when user is scrolling), to be on page just for example 50-60 elements.
+    //     If you want I can do it))
     scroll() {
-      this.$refs.table.addEventListener("scroll", () => {
-        const wrapperScroll = this.$refs.table.scrollTop;
-        const wrapperHeight = this.$refs.table.clientHeight;
-        const albumHeight = this.$refs.album.clientHeight;
-        console.log(Math.ceil(wrapperScroll), wrapperHeight, albumHeight);
+      const wrapperScroll = this.$refs.table.scrollTop;
+      const wrapperHeight = this.$refs.table.clientHeight;
+      const albumHeight = this.$refs.album.clientHeight;
+      if (!this.searchPhoto) {
         if (wrapperScroll + wrapperHeight === albumHeight) {
           this.countAlbum++;
           this.albumsChunk = this.albums.slice(0, this.countAlbum);
         }
+      }
+    },
+
+    sortAlbum() {
+      this.albumsChunk.sort().reverse();
+    },
+
+    sortPhotos() {
+      this.albumsChunk.forEach(item => {
+        item.photos.sort().reverse();
       });
     }
   },
@@ -82,43 +152,96 @@ export default {
     albums(newVal) {
       if (newVal) {
         this.albumsChunk = this.albums.slice(0, this.countAlbum);
+        this.albums.forEach(item => {
+          this.photos.push(...item.photos);
+        });
       }
     }
-  },
-
-  mounted() {
-    this.scroll();
   }
 };
 </script>
 
 <style scoped>
+.table-title {
+  text-align: center;
+}
+
 .table-wrapper {
+  margin: 5px;
   height: 500px;
-  border: 2px solid red;
   overflow: auto;
+  background-color: #d1e6da;
+  border: 2px solid #ad60da;
 }
 
 .album {
   position: relative;
-  height: 100%;
-  border: 1px solid blue;
-  padding: 5px 10px;
+  padding: 2px 10px;
 }
 
 .album-title {
   display: block;
-  background: #fff;
-  padding: 20px;
-  text-align: center;
-  border: 1px solid blue;
-  margin: 0;
   position: sticky;
   top: -1px;
+  margin-top: 5px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0px 3px 5px rgba(71, 67, 67, 0.5);
+  background: rgb(175, 217, 230);
 }
 
 .photo {
-  border: 1px solid red;
-  background: pink;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 5px 15px;
+  background: rgb(255, 255, 255);
+  border: 1px solid rgb(186, 70, 209);
+}
+
+.search-emtpy {
+  display: block;
+  margin-top: 20%;
+  text-align: center;
+}
+
+.filters {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.filter-btn {
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+  background-color: lightblue;
+  border: 2px solid grey;
+}
+
+.filter-btn:hover {
+  background-color: #c5f1ff;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.input {
+  padding: 10px;
+  border-radius: 8px;
+  outline: none;
+  border: 2px solid grey;
+}
+
+.photo-id {
+  flex-grow: 1;
+}
+
+.photo-text {
+  flex-grow: 2;
+}
+
+.thumbnail {
+  width: 50px;
+  height: 50px;
 }
 </style>

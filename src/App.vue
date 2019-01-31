@@ -51,9 +51,8 @@
       />
     </div>
     <div class="table-wrapper">
-      <!-- <TableData :albums="fullData || []" /> -->
+      <TableData :albums="fullData || []" />
     </div>
-    <TestComp :albums="fullData || []" />
   </div>
 </template>
 
@@ -62,7 +61,6 @@ import PallindromeCheck from "./components/PalindromeCheck";
 import FruitsValidate from "./components/FruitsValidate";
 import ProductsList from "./components/ProductsList";
 import TableData from "./components/TableData";
-import TestComp from "./components/TestComp";
 
 export default {
   name: "app",
@@ -71,8 +69,7 @@ export default {
     PallindromeCheck,
     FruitsValidate,
     ProductsList,
-    TableData,
-    TestComp
+    TableData
   },
 
   data() {
@@ -83,6 +80,31 @@ export default {
       costByName: null,
       fullData: null
     };
+  },
+
+  methods: {
+    getFullData(data) {
+      let newArr = [];
+      const albums = data[0];
+      const photos = data[1];
+
+      albums.forEach(album => {
+        const createAlbum = [];
+        createAlbum.push(album);
+        createAlbum[0].photos = [];
+
+        photos.forEach(photo => {
+          if (album.id === photo.albumId) {
+            createAlbum[0].photos.push(photo);
+          }
+          return;
+        });
+
+        newArr.push(...createAlbum);
+      });
+
+      this.fullData = newArr.slice();
+    }
   },
 
   created() {
@@ -137,45 +159,21 @@ export default {
 
     teamArrowFunc.teamSummary();
 
-    // ===========================
-    Promise.all([
-      fetch("https://jsonplaceholder.typicode.com/albums").then(response =>
-        response.json()
-      ),
-      fetch("https://jsonplaceholder.typicode.com/photos").then(response =>
-        response.json()
-      )
-    ]).then(data => {
-      let newArr = [];
+    // =========================== TO TABLE
+    const getAlbum = fetch("https://jsonplaceholder.typicode.com/albums");
+    const getPhotos = fetch("https://jsonplaceholder.typicode.com/photos");
 
-      data[0].forEach(album => {
-        const createAlbum = [];
-        createAlbum.push(album);
-        createAlbum[0].photos = [];
-        data[1].forEach(photo => {
-          if (album.id === photo.albumId) {
-            createAlbum[0].photos.push(photo);
-          }
-          return;
-        });
-        newArr.push(...createAlbum);
-      });
-      this.fullData = newArr.slice();
+    Promise.all([
+      getAlbum.then(response => response.json()),
+      getPhotos.then(response => response.json())
+    ]).then(data => {
+      // I know that this isn't good way, but I need to get like this)
+      // In real life back end can give like this....
+      this.getFullData(data);
     });
   }
 };
 </script>
-// Write a Vue app to display data in table with the following functionalities
-// fixed header row (album.id, album.title, photos.title, photos.thumbnail)
-// Specific fields sortable(album.id,albums.title, photos.title)
-// Searchable on albums.title and photos.title
-// Scrollable (show 25 rows by default)
-// Custom filters - album.title
-// thumbnail should appear as an image
-// Data url:
-// https://jsonplaceholder.typicode.com/albums
-// https://jsonplaceholder.typicode.com/photos
-
 
 <style scoped>
 * {
@@ -212,5 +210,9 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.table-wrapper {
+  margin-top: 20px;
 }
 </style>
